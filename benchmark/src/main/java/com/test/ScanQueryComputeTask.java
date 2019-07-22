@@ -9,9 +9,11 @@ import java.util.Map;
 import javax.cache.Cache.Entry;
 
 import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteBinary;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.binary.BinaryField;
 import org.apache.ignite.binary.BinaryObject;
+import org.apache.ignite.binary.BinaryType;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.cluster.ClusterNode;
@@ -68,19 +70,22 @@ public class ScanQueryComputeTask extends ComputeTaskAdapter<Boolean, Long> {
 
 		@Override
 		public Long execute() throws IgniteException {
-			ScanQuery<Integer, BinaryObject> query = new ScanQuery<>();
+			
+			IgniteBinary binary = ignite.binary();
+			BinaryType type = binary.type(Foo.class);
+			ScanQuery<BinaryObject, BinaryObject> query = new ScanQuery<>((k, v) -> type.typeId() == v.type().typeId());
 			if (part >= 0) {
 				query.setPartition(part);
 			}
 
 			long sum = 0L;
 
-			try (QueryCursor<Entry<Integer, BinaryObject>> cursor = ignite.cache("foo").withKeepBinary().query(query)) {
+			try (QueryCursor<Entry<BinaryObject, BinaryObject>> cursor = ignite.cache("foo").withKeepBinary().query(query)) {
 
 				BinaryField field = ignite.binary().type(Foo.class).field("value");
 
-				for (Iterator<Entry<Integer, BinaryObject>> iterator = cursor.iterator(); iterator.hasNext();) {
-					Entry<Integer, BinaryObject> entry = iterator.next();
+				for (Iterator<Entry<BinaryObject, BinaryObject>> iterator = cursor.iterator(); iterator.hasNext();) {
+					Entry<BinaryObject, BinaryObject> entry = iterator.next();
 
 					sum += (Long) field.value(entry.getValue());
 

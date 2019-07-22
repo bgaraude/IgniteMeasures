@@ -2,23 +2,25 @@ package com.test.model;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-public final class Foo {
+import com.test.model.Foo.Id;
+
+public final class Bar {
 
 	public int id;
 	public String name;
 	public long value;
-	public int refBar;
+	public int refFoo;
 
-	public Foo(int id, String name, long value, int refBar) {
+	public Bar(int id, String name, long value, int refFoo) {
 		this.id = id;
 		this.name = name;
 		this.value = value;
-		this.refBar = refBar;
+		this.refFoo = refFoo;
 	}
 
-	public static Foo newFoo(int id) {
+	public static Bar newBar(int id) {
 		ThreadLocalRandom random = ThreadLocalRandom.current();
-		return new Foo(id, Long.toHexString(random.nextLong()), random.nextLong(), random.nextInt());
+		return new Bar(id, Long.toHexString(random.nextLong()), random.nextLong(), random.nextInt());
 	}
 
 	public static class Id {
@@ -33,5 +35,4 @@ public final class Foo {
 			return new Id(id);
 		}
 	}
-
 }

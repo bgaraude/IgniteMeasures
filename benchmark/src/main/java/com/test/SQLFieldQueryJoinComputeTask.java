@@ -6,16 +6,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.cache.Cache.Entry;
-
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteBinary;
 import org.apache.ignite.IgniteException;
-import org.apache.ignite.binary.BinaryField;
-import org.apache.ignite.binary.BinaryObject;
-import org.apache.ignite.binary.BinaryType;
-import org.apache.ignite.cache.query.QueryCursor;
-import org.apache.ignite.cache.query.ScanQuery;
+import org.apache.ignite.cache.query.FieldsQueryCursor;
+import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.compute.ComputeJob;
 import org.apache.ignite.compute.ComputeJobAdapter;
@@ -25,9 +19,7 @@ import org.apache.ignite.compute.ComputeTaskAdapter;
 import org.apache.ignite.resources.IgniteInstanceResource;
 import org.apache.ignite.resources.LoadBalancerResource;
 
-import com.test.model.Foo;
-
-public class ScanQueryPredicateComputeTask extends ComputeTaskAdapter<Boolean, Long> {
+public class SQLFieldQueryJoinComputeTask extends ComputeTaskAdapter<Boolean, Long> {
 
 	@IgniteInstanceResource
 	transient Ignite ignite;
@@ -70,28 +62,21 @@ public class ScanQueryPredicateComputeTask extends ComputeTaskAdapter<Boolean, L
 
 		@Override
 		public Long execute() throws IgniteException {
-
-			IgniteBinary binary = ignite.binary();
-			BinaryField namefield = binary.type(Foo.class).field("name");
-			BinaryType type = binary.type(Foo.class);
-			ScanQuery<BinaryObject, BinaryObject> query = new ScanQuery<>(
-					(i, bo) -> type.typeId() == bo.type().typeId() && namefield.<String>value(bo).endsWith("ab"));
-
+			SqlFieldsQuery query = new SqlFieldsQuery(
+					"select f.name, b.value from Foo f join Bar b on f.refBar=b.id");
 			if (part >= 0) {
-				query.setPartition(part);
+				query.setPartitions(part);
 			}
 
 			long sum = 0L;
 
-			try (QueryCursor<Entry<BinaryObject, BinaryObject>> cursor = ignite.cache("foo").withKeepBinary()
-					.query(query)) {
+			try (FieldsQueryCursor<List<?>> cursor = ignite.cache("foo").withKeepBinary().query(query);) {
 
-				BinaryField valuefield = ignite.binary().type(Foo.class).field("value");
-
-				for (Iterator<Entry<BinaryObject, BinaryObject>> iterator = cursor.iterator(); iterator.hasNext();) {
-					Entry<BinaryObject, BinaryObject> entry = iterator.next();
-
-					sum += (Long) valuefield.value(entry.getValue());
+				for (Iterator<List<?>> iterator = cursor.iterator(); iterator.hasNext();) {
+					List<?> entry = iterator.next();
+					if (entry.get(1) != null) {
+						sum += (Long) entry.get(1);
+					}
 
 				}
 

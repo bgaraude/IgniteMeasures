@@ -69,19 +69,19 @@ public class SQLQueryComputeTask extends ComputeTaskAdapter<Boolean, Long> {
 
 		@Override
 		public Long execute() throws IgniteException {
-			SqlQuery<Integer, BinaryObject> query = new SqlQuery<>(Foo.class, "true");
+			SqlQuery<BinaryObject, BinaryObject> query = new SqlQuery<>(Foo.class, "name=name");
 			if (part >= 0) {
 				query.setPartitions(part);
 			}
 
 			long sum = 0L;
 
-			try (QueryCursor<Entry<Integer, BinaryObject>> cursor = ignite.cache("foo").withKeepBinary().query(query)) {
+			try (QueryCursor<Entry<BinaryObject, BinaryObject>> cursor = ignite.cache("foo").withKeepBinary().query(query)) {
 
 				BinaryField field = ignite.binary().type(Foo.class).field("value");
 
-				for (Iterator<Entry<Integer, BinaryObject>> iterator = cursor.iterator(); iterator.hasNext();) {
-					Entry<Integer, BinaryObject> entry = iterator.next();
+				for (Iterator<Entry<BinaryObject, BinaryObject>> iterator = cursor.iterator(); iterator.hasNext();) {
+					Entry<BinaryObject, BinaryObject> entry = iterator.next();
 
 					sum += (Long) field.value(entry.getValue());
 

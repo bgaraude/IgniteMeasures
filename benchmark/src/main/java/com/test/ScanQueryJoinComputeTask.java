@@ -10,6 +10,7 @@ import javax.cache.Cache.Entry;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteBinary;
+import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.binary.BinaryField;
 import org.apache.ignite.binary.BinaryObject;
@@ -25,9 +26,10 @@ import org.apache.ignite.compute.ComputeTaskAdapter;
 import org.apache.ignite.resources.IgniteInstanceResource;
 import org.apache.ignite.resources.LoadBalancerResource;
 
+import com.test.model.Bar;
 import com.test.model.Foo;
 
-public class ScanQueryPredicateComputeTask extends ComputeTaskAdapter<Boolean, Long> {
+public class ScanQueryJoinComputeTask extends ComputeTaskAdapter<Boolean, Long> {
 
 	@IgniteInstanceResource
 	transient Ignite ignite;
@@ -72,26 +74,29 @@ public class ScanQueryPredicateComputeTask extends ComputeTaskAdapter<Boolean, L
 		public Long execute() throws IgniteException {
 
 			IgniteBinary binary = ignite.binary();
-			BinaryField namefield = binary.type(Foo.class).field("name");
 			BinaryType type = binary.type(Foo.class);
-			ScanQuery<BinaryObject, BinaryObject> query = new ScanQuery<>(
-					(i, bo) -> type.typeId() == bo.type().typeId() && namefield.<String>value(bo).endsWith("ab"));
-
+			ScanQuery<BinaryObject, BinaryObject> query = new ScanQuery<>((k, v) -> type.typeId() == v.type().typeId());
 			if (part >= 0) {
 				query.setPartition(part);
 			}
 
 			long sum = 0L;
 
-			try (QueryCursor<Entry<BinaryObject, BinaryObject>> cursor = ignite.cache("foo").withKeepBinary()
-					.query(query)) {
+			IgniteCache<BinaryObject, BinaryObject> cache = ignite.cache("foo").withKeepBinary();
+			try (QueryCursor<Entry<BinaryObject, BinaryObject>> cursor = cache.query(query)) {
 
-				BinaryField valuefield = ignite.binary().type(Foo.class).field("value");
+				BinaryField barValueField = ignite.binary().type(Bar.class).field("value");
+				BinaryField refBarField = ignite.binary().type(Foo.class).field("refBar");
 
 				for (Iterator<Entry<BinaryObject, BinaryObject>> iterator = cursor.iterator(); iterator.hasNext();) {
 					Entry<BinaryObject, BinaryObject> entry = iterator.next();
 
-					sum += (Long) valuefield.value(entry.getValue());
+					int barId = refBarField.value(entry.getValue());
+
+					BinaryObject bar = cache.get(binary.toBinary(Bar.Id.newId(barId)));
+					if (bar != null) {
+						sum += (Long) barValueField.value(bar);
+					}
 
 				}
 
