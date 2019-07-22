@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteException;
@@ -63,9 +64,11 @@ public class SQLFieldQueryJoinComputeTask extends ComputeTaskAdapter<Boolean, Lo
 		@Override
 		public Long execute() throws IgniteException {
 			SqlFieldsQuery query = new SqlFieldsQuery(
-					"select f.name, b.value from Foo f join Bar b on f.refBar=b.id");
+					"select f.name, b.value from Foo f left join Bar b on f.refBar=b.id");
 			if (part >= 0) {
 				query.setPartitions(part);
+			}else {
+				query.setPartitions(IntStream.range(0, ignite.affinity("foo").partitions()).toArray());
 			}
 
 			long sum = 0L;

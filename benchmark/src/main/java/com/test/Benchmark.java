@@ -31,6 +31,7 @@ public class Benchmark {
 				.withQueryField("name", String.class)//
 				.withQueryField("value", long.class)//
 				.withQueryField("refBar", int.class)//
+				//.withIndex("refBar")
 				.build()//
 
 				.withQueryEntity(Bar.Id.class, Bar.class)//
@@ -38,12 +39,13 @@ public class Benchmark {
 				.withQueryField("name", String.class)//
 				.withQueryField("value", long.class)//
 				.withQueryField("refFoo", int.class)//
+				.withIndex("id")
 				.build()//
 
 				.build()//
 
-				.load(50_000, Foo.Id::newId, Foo::newFoo)//
-				.load(50_000, Bar.Id::newId, Bar::newBar);
+				.load(5_000_000, Foo.Id::newId, Foo::newFoo)//
+				.load(5_000_000, Bar.Id::newId, Bar::newBar);
 
 		long t;
 		Long res;

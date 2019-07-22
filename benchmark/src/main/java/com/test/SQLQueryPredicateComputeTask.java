@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import javax.cache.Cache.Entry;
 
@@ -72,6 +73,8 @@ public class SQLQueryPredicateComputeTask extends ComputeTaskAdapter<Boolean, Lo
 			SqlQuery<BinaryObject, BinaryObject> query = new SqlQuery<>(Foo.class, "name like '%ab'");
 			if (part >= 0) {
 				query.setPartitions(part);
+			}else {
+				query.setPartitions(IntStream.range(0, ignite.affinity("foo").partitions()).toArray());
 			}
 
 			long sum = 0L;

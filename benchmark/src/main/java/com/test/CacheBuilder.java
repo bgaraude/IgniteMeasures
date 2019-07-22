@@ -2,6 +2,7 @@ package com.test;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.function.IntFunction;
@@ -10,6 +11,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.QueryEntity;
+import org.apache.ignite.cache.QueryIndex;
 import org.apache.ignite.configuration.CacheConfiguration;
 
 final class CacheBuilder<K, V> {
@@ -76,6 +78,17 @@ final class CacheBuilder<K, V> {
 
 		QueryEntityBuilder<T, U> withQueryField(String name, Class<?> type) {
 			queryEntity.addQueryField(name, type.getName(), null);
+			return this;
+		}
+
+		QueryEntityBuilder<T, U> withIndex(String... fields) {
+			QueryIndex index = new QueryIndex();
+			index.setFieldNames(Arrays.asList(fields), true);
+
+			Collection<QueryIndex> indexes = new ArrayList<QueryIndex>(
+					queryEntity.getIndexes() == null ? Collections.emptyList() : queryEntity.getIndexes());
+			indexes.add(index);
+			queryEntity.setIndexes(indexes);
 			return this;
 		}
 
